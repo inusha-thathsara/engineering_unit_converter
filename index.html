@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineering Unit Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#3b82f6',
+                            dark: '#1e40af'
+                        },
+                        secondary: {
+                            light: '#10b981',
+                            dark: '#065f46'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .formula-box {
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+        .formula-box.expanded {
+            max-height: 500px;
+        }
+        .print-section {
+            display: none;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            .print-section {
+                display: block;
+            }
+        }
+        .quiz-option {
+            transition: all 0.2s ease;
+        }
+        .quiz-option:hover {
+            transform: translateY(-2px);
+        }
+        .quiz-option.correct {
+            background-color: #10B981 !important;
+            color: white !important;
+        }
+        .quiz-option.incorrect {
+            background-color: #EF4444 !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-primary-light dark:text-primary-dark mb-2">
+                <i class="fas fa-calculator mr-2"></i>Engineering Unit Converter
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400">Convert between units with detailed formula explanations</p>
+            <div class="flex justify-center mt-4 space-x-4">
+                <button id="darkModeToggle" class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-moon mr-2"></i>Dark Mode
+                </button>
+                <button id="printBtn" class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors no-print">
+                    <i class="fas fa-print mr-2"></i>Print
+                </button>
+                <button id="quizModeToggle" class="px-4 py-2 rounded-lg bg-secondary-light dark:bg-secondary-dark text-white hover:bg-opacity-90 transition-colors">
+                    <i class="fas fa-question-circle mr-2"></i>Quiz Mode
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Converter Panel -->
+            <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300" id="converterPanel">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-primary-light dark:text-primary-dark">
+                        <i class="fas fa-exchange-alt mr-2"></i>Unit Conversion
+                    </h2>
+                    <div class="relative">
+                        <select id="unitCategory" class="appearance-none bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary-light dark:focus:ring-primary-dark">
+                            <option value="force">Force</option>
+                            <option value="pressure">Pressure</option>
+                            <option value="energy">Energy</option>
+                            <option value="power">Power</option>
+                            <option value="torque">Torque</option>
+                            <option value="velocity">Velocity</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Section -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="md:col-span-1">
+                        <label for="inputValue" class="block text-sm font-medium mb-1">Value</label>
+                        <div class="relative">
+                            <input type="number" id="inputValue" class="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-light dark:focus:ring-primary-dark" placeholder="Enter value" value="1">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <button id="scientificToggle" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                    <i class="fas fa-times-10"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-1">
+                        <label for="fromUnit" class="block text-sm font-medium mb-1">From Unit</label>
+                        <select id="fromUnit" class="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-light dark:focus:ring-primary-dark">
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="md:col-span-1">
+                        <label for="toUnit" class="block text-sm font-medium mb-1">To Unit</label>
+                        <select id="toUnit" class="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-light dark:focus:ring-primary-dark">
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Prefix Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">Unit Prefixes</label>
+                    <div class="grid grid-cols-6 gap-2">
+                        <button class="prefix-btn px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-prefix="T">T (10¹²)</button>
+                        <button class="prefix-btn px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-prefix="G">G (10⁹)</button>
+                        <button class="prefix-btn px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-prefix="M">M (10⁶)</button>
+                        <button class="prefix-btn px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-prefix="k">k (10³)</button>
+                        <button class="prefix-btn px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-prefix="m">m (10⁻³)</button>
+                        <button class="prefix-btn px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-prefix="µ">µ (10⁻⁶)</button>
+                    </div>
+                </div>
+
+                <!-- Result Section -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-medium">Conversion Result</h3>
+                        <button id="copyResult" class="text-sm px-3 py-1 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500">
+                            <i class="fas fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                    <div id="conversionResult" class="text-2xl font-bold text-primary-light dark:text-primary-dark mb-2">0.00</div>
+                    <div id="conversionFormula" class="text-sm bg-gray-100 dark:bg-gray-600 p-2 rounded font-mono"></div>
+                </div>
+
+                <!-- Formula Explanation -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <div class="flex justify-between items-center cursor-pointer" id="formulaToggle">
+                        <h3 class="font-medium">
+                            <i class="fas fa-info-circle mr-2 text-primary-light dark:text-primary-dark"></i>Formula Explanation
+                        </h3>
+                        <i class="fas fa-chevron-down transition-transform duration-300" id="formulaToggleIcon"></i>
+                    </div>
+                    <div class="formula-box" id="formulaBox">
+                        <div class="mt-4 text-sm" id="formulaDescription"></div>
+                        <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-600 rounded" id="formulaDetails"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unit Information Panel -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300">
+                <h2 class="text-xl font-semibold text-primary-light dark:text-primary-dark mb-6">
+                    <i class="fas fa-info-circle mr-2"></i>Unit Information
+                </h2>
+                <div id="unitInfoContent">
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Select a unit category to see detailed information about the units and their relationships.</p>
+                    <div class="space-y-4" id="unitDefinitions"></div>
+                </div>
+            </div>
+
+            <!-- Quiz Panel (Hidden by default) -->
+            <div class="lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition-colors duration-300 hidden" id="quizPanel">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-primary-light dark:text-primary-dark">
+                        <i class="fas fa-question-circle mr-2"></i>Unit Conversion Quiz
+                    </h2>
+                    <div class="flex items-center">
+                        <span class="mr-4">Score: <span id="quizScore">0</span>/<span id="quizTotal">0</span></span>
+                        <button id="newQuizBtn" class="px-4 py-2 rounded-lg bg-secondary-light dark:bg-secondary-dark text-white hover:bg-opacity-90 transition-colors">
+                            <i class="fas fa-sync-alt mr-2"></i>New Quiz
+                        </button>
+                    </div>
+                </div>
+
+                <div class="quiz-content">
+                    <div id="quizQuestionContainer" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <p class="text-lg font-medium mb-4" id="quizQuestion"></p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="quizOptions"></div>
+                    </div>
+
+                    <div id="quizFeedback" class="hidden p-4 mb-6 rounded-lg"></div>
+
+                    <div class="flex justify-between items-center">
+                        <div id="quizProgress" class="text-sm text-gray-600 dark:text-gray-400">Question 0 of 0</div>
+                        <button id="nextQuestionBtn" class="px-4 py-2 rounded-lg bg-primary-light dark:bg-primary-dark text-white hover:bg-opacity-90 transition-colors hidden">
+                            Next Question <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Print Section (Hidden until printing) -->
+        <div class="print-section mt-8 p-6 bg-white text-black">
+            <h2 class="text-2xl font-bold mb-4">Unit Conversion Result</h2>
+            <div class="mb-4">
+                <p><strong>Conversion:</strong> <span id="printConversion"></span></p>
+                <p><strong>Formula:</strong> <span id="printFormula"></span></p>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold mb-2">Formula Explanation</h3>
+                <div id="printExplanation"></div>
+            </div>
+            <p class="text-sm mt-6">Generated by Engineering Unit Converter - https://example.com</p>
+        </div>
+    </div>
+
+    <script>
+        // Unit conversion data with formulas and explanations
+        const unitData = {
+            force: {
+                name: "Force",
+                units: {
+                    N: { name: "Newton (N)", factor: 1, base: "kg·m/s²" },
+                    lbf: { name: "Pound-force (lbf)", factor: 4.44822, base: "4.44822 N" },
+                    dyn: { name: "Dyne (dyn)", factor: 0.00001, base: "g·cm/s²" },
+                    kgf: { name: "Kilogram-force (kgf)", factor: 9.80665, base: "9.80665 N" }
+                },
+                description: "Force is any interaction that, when unopposed, will change the motion of an object. In physics, force is defined using Newton's second law of motion: F = ma (force equals mass times acceleration).",
+                details: "The newton (N) is the SI derived unit of force. One newton is the force needed to accelerate one kilogram of mass at the rate of one meter per second squared in the direction of the applied force."
+            },
+            pressure: {
+                name: "Pressure",
+                units: {
+                    Pa: { name: "Pascal (Pa)", factor: 1, base: "N/m²" },
+                    atm: { name: "Atmosphere (atm)", factor: 101325, base: "101325 Pa" },
+                    bar: { name: "Bar (bar)", factor: 100000, base: "100000 Pa" },
+                    psi: { name: "Pound per square inch (psi)", factor: 6894.76, base: "6894.76 Pa" },
+                    mmHg: { name: "Millimeter of mercury (mmHg)", factor: 133.322, base: "133.322 Pa" }
+                },
+                description: "Pressure is the force applied perpendicular to the surface of an object per unit area over which that force is distributed. Pressure is a scalar quantity with SI unit of pascal (Pa).",
+                details: "Pressure can be expressed in many different units. The standard atmosphere (atm) is a unit of pressure defined as 101325 Pa. The bar is another common unit, where 1 bar = 100000 Pa. In imperial units, pounds per square inch (psi) is commonly used."
+            },
+            energy: {
+                name: "Energy",
+                units: {
+                    J: { name: "Joule (J)", factor: 1, base: "N·m" },
+                    cal: { name: "Calorie (cal)", factor: 4.184, base: "4.184 J" },
+                    kcal: { name: "Kilocalorie (kcal)", factor: 4184, base: "4184 J" },
+                    BTU: { name: "British Thermal Unit (BTU)", factor: 1055.06, base: "1055.06 J" },
+                    kWh: { name: "Kilowatt-hour (kWh)", factor: 3600000, base: "3.6×10⁶ J" },
+                    eV: { name: "Electronvolt (eV)", factor: 1.60218e-19, base: "1.60218×10⁻¹⁹ J" }
+                },
+                description: "Energy is the quantitative property that must be transferred to an object to perform work on, or to heat, the object. The SI unit of energy is the joule (J), which is the energy transferred when a force of one newton acts through a distance of one meter.",
+                details: "Different fields use different units for energy. In nutrition, calories (cal) are used, where 1 cal = 4.184 J. In physics, electronvolts (eV) are often used for atomic-scale energies. The British Thermal Unit (BTU) is used in heating and air conditioning systems."
+            },
+            power: {
+                name: "Power",
+                units: {
+                    W: { name: "Watt (W)", factor: 1, base: "J/s" },
+                    HP: { name: "Horsepower (HP)", factor: 745.7, base: "745.7 W" },
+                    kW: { name: "Kilowatt (kW)", factor: 1000, base: "1000 W" },
+                    BTUhr: { name: "BTU per hour (BTU/hr)", factor: 0.293071, base: "0.293071 W" }
+                },
+                description: "Power is the rate at which work is done or energy is transferred. The SI unit of power is the watt (W), which is equal to one joule per second.",
+                details: "Horsepower (HP) is a unit of power that was originally developed to compare the output of steam engines with the power of draft horses. One mechanical horsepower is approximately 745.7 watts. The kilowatt (kW) is commonly used for electrical power."
+            },
+            torque: {
+                name: "Torque",
+                units: {
+                    Nm: { name: "Newton-meter (N·m)", factor: 1, base: "N·m" },
+                    lbfft: { name: "Pound-force foot (lbf·ft)", factor: 1.35582, base: "1.35582 N·m" },
+                    lbfin: { name: "Pound-force inch (lbf·in)", factor: 0.112985, base: "0.112985 N·m" }
+                },
+                description: "Torque is the rotational equivalent of linear force. It is also referred to as the moment of force. The SI unit for torque is the newton-meter (N·m).",
+                details: "Torque represents the tendency of a force to rotate an object about an axis. In automotive applications, torque is often measured in pound-feet (lbf·ft) or pound-inches (lbf·in). One pound-foot is the torque created by one pound force acting at a perpendicular distance of one foot from a pivot point."
+            },
+            velocity: {
+                name: "Velocity",
+                units: {
+                    ms: { name: "Meters per second (m/s)", factor: 1, base: "m/s" },
+                    kmh: { name: "Kilometers per hour (km/h)", factor: 0.277778, base: "0.277778 m/s" },
+                    mph: { name: "Miles per hour (mph)", factor: 0.44704, base: "0.44704 m/s" },
+                    fts: { name: "Feet per second (ft/s)", factor: 0.3048, base: "0.3048 m/s" },
+                    knot: { name: "Knot (kn)", factor: 0.514444, base: "0.514444 m/s" }
+                },
+                description: "Velocity is the rate of change of the position of an object with respect to a frame of reference. The SI unit of velocity is meter per second (m/s).",
+                details: "Velocity is a vector quantity that includes both speed and direction. Common units include kilometers per hour (km/h) for road vehicles, miles per hour (mph) in the US, and knots (nautical miles per hour) for maritime and aviation applications."
+            }
+        };
+
+        // Prefix multipliers
+        const prefixes = {
+            'T': 1e12,
+            'G': 1e9,
+            'M': 1e6,
+            'k': 1e3,
+            '': 1,
+            'm': 1e-3,
+            'µ': 1e-6,
+            'n': 1e-9,
+            'p': 1e-12
+        };
+
+        // Quiz questions
+        const quizQuestions = {
+            force: [
+                {
+                    question: "How many newtons are in 1 pound-force (lbf)?",
+                    options: ["4.44822 N", "9.80665 N", "1 N", "0.224809 N"],
+                    answer: 0,
+                    explanation: "1 pound-force (lbf) is equal to exactly 4.44822 newtons (N). This conversion factor comes from the international agreement on the pound as a unit of mass and the standard acceleration due to gravity."
+                },
+                {
+                    question: "Which of these is the SI unit of force?",
+                    options: ["Pound-force (lbf)", "Dyne (dyn)", "Newton (N)", "Kilogram-force (kgf)"],
+                    answer: 2,
+                    explanation: "The newton (N) is the SI derived unit of force. It is named after Isaac Newton in recognition of his work on classical mechanics, specifically Newton's second law of motion."
+                }
+            ],
+            pressure: [
+                {
+                    question: "What is the value of standard atmospheric pressure in pascals?",
+                    options: ["100000 Pa", "101325 Pa", "98000 Pa", "1.01325 Pa"],
+                    answer: 1,
+                    explanation: "Standard atmospheric pressure is defined as exactly 101325 pascals (Pa). This value represents the average pressure at sea level on Earth."
+                },
+                {
+                    question: "How many pascals are in 1 psi (pound per square inch)?",
+                    options: ["6894.76 Pa", "1000 Pa", "101325 Pa", "14.6959 Pa"],
+                    answer: 0,
+                    explanation: "1 pound per square inch (psi) is equal to approximately 6894.76 pascals. This conversion comes from the definition of the pound-force and the inch."
+                }
+            ],
+            energy: [
+                {
+                    question: "How many joules are in 1 kilocalorie (kcal)?",
+                    options: ["4.184 J", "1000 J", "4184 J", "1 J"],
+                    answer: 2,
+                    explanation: "1 kilocalorie (kcal), often called a Calorie (with capital C) in nutrition, is equal to 4184 joules. This is the amount of energy needed to raise the temperature of 1 kilogram of water by 1°C."
+                },
+                {
+                    question: "Which of these is the SI unit of energy?",
+                    options: ["Calorie (cal)", "British Thermal Unit (BTU)", "Joule (J)", "Kilowatt-hour (kWh)"],
+                    answer: 2,
+                    explanation: "The joule (J) is the SI derived unit of energy. It is defined as the work done when a force of one newton acts over a distance of one meter."
+                }
+            ],
+            power: [
+                {
+                    question: "How many watts are in 1 horsepower (HP)?",
+                    options: ["745.7 W", "1000 W", "550 W", "1.34102 W"],
+                    answer: 0,
+                    explanation: "1 mechanical horsepower is equal to approximately 745.7 watts. This value was established by James Watt to compare the output of steam engines with the power of draft horses."
+                },
+                {
+                    question: "Which of these is the SI unit of power?",
+                    options: ["Horsepower (HP)", "Watt (W)", "BTU per hour (BTU/hr)", "Kilowatt (kW)"],
+                    answer: 1,
+                    explanation: "The watt (W) is the SI derived unit of power. It is defined as one joule per second, which measures the rate of energy conversion or transfer."
+                }
+            ],
+            torque: [
+                {
+                    question: "How many newton-meters are in 1 pound-force foot (lbf·ft)?",
+                    options: ["1.35582 N·m", "0.737562 N·m", "12 N·m", "0.083333 N·m"],
+                    answer: 0,
+                    explanation: "1 pound-force foot (lbf·ft) is equal to approximately 1.35582 newton-meters. This conversion comes from the definition of the pound-force and the foot."
+                },
+                {
+                    question: "Which of these is the SI unit of torque?",
+                    options: ["Pound-force foot (lbf·ft)", "Newton-meter (N·m)", "Pound-force inch (lbf·in)", "Kilogram-force meter (kgf·m)"],
+                    answer: 1,
+                    explanation: "The newton-meter (N·m) is the SI derived unit of torque. Although dimensionally equivalent to the joule, torque is considered a different quantity and is not expressed in joules."
+                }
+            ],
+            velocity: [
+                {
+                    question: "How many meters per second are in 1 mile per hour (mph)?",
+                    options: ["0.44704 m/s", "1.60934 m/s", "0.277778 m/s", "3.6 m/s"],
+                    answer: 0,
+                    explanation: "1 mile per hour (mph) is equal to approximately 0.44704 meters per second. This conversion comes from the definition of the mile (1609.344 meters) and the hour (3600 seconds)."
+                },
+                {
+                    question: "Which of these is the SI unit of velocity?",
+                    options: ["Kilometers per hour (km/h)", "Miles per hour (mph)", "Meters per second (m/s)", "Feet per second (ft/s)"],
+                    answer: 2,
+                    explanation: "The meter per second (m/s) is the SI derived unit of velocity. It represents the speed of an object traveling one meter in one second."
+                }
+            ]
+        };
+
+        // DOM elements
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const printBtn = document.getElementById('printBtn');
+        const quizModeToggle = document.getElementById('quizModeToggle');
+        const unitCategory = document.getElementById('unitCategory');
+        const inputValue = document.getElementById('inputValue');
+        const fromUnit = document.getElementById('fromUnit');
+        const toUnit = document.getElementById('toUnit');
+        const conversionResult = document.getElementById('conversionResult');
+        const conversionFormula = document.getElementById('conversionFormula');
+        const copyResult = document.getElementById('copyResult');
+        const formulaToggle = document.getElementById('formulaToggle');
+        const formulaBox = document.getElementById('formulaBox');
+        const formulaDescription = document.getElementById('formulaDescription');
+        const formulaDetails = document.getElementById('formulaDetails');
+        const unitDefinitions = document.getElementById('unitDefinitions');
+        const quizPanel = document.getElementById('quizPanel');
+        const converterPanel = document.getElementById('converterPanel');
+        const quizQuestion = document.getElementById('quizQuestion');
+        const quizOptions = document.getElementById('quizOptions');
+        const quizFeedback = document.getElementById('quizFeedback');
+        const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+        const quizScore = document.getElementById('quizScore');
+        const quizTotal = document.getElementById('quizTotal');
+        const quizProgress = document.getElementById('quizProgress');
+        const newQuizBtn = document.getElementById('newQuizBtn');
+        const scientificToggle = document.getElementById('scientificToggle');
+        const prefixButtons = document.querySelectorAll('.prefix-btn');
+        const printConversion = document.getElementById('printConversion');
+        const printFormula = document.getElementById('printFormula');
+        const printExplanation = document.getElementById('printExplanation');
+
+        // State variables
+        let currentCategory = 'force';
+        let isQuizMode = false;
+        let currentQuizQuestions = [];
+        let currentQuestionIndex = 0;
+        let quizScoreCount = 0;
+        let isScientificNotation = false;
+
+        // Initialize the app
+        function init() {
+            updateUnitOptions();
+            performConversion();
+            updateUnitInfo();
+            setupEventListeners();
+            checkDarkModePreference();
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Dark mode toggle
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+            
+            // Print button
+            printBtn.addEventListener('click', preparePrint);
+            
+            // Quiz mode toggle
+            quizModeToggle.addEventListener('click', toggleQuizMode);
+            
+            // Unit category change
+            unitCategory.addEventListener('change', function() {
+                currentCategory = this.value;
+                updateUnitOptions();
+                performConversion();
+                updateUnitInfo();
+            });
+            
+            // Input changes
+            inputValue.addEventListener('input', performConversion);
+            fromUnit.addEventListener('change', performConversion);
+            toUnit.addEventListener('change', performConversion);
+            
+            // Copy result button
+            copyResult.addEventListener('click', copyConversionResult);
+            
+            // Formula explanation toggle
+            formulaToggle.addEventListener('click', toggleFormulaExplanation);
+            
+            // Quiz controls
+            nextQuestionBtn.addEventListener('click', showNextQuestion);
+            newQuizBtn.addEventListener('click', startNewQuiz);
+            
+            // Scientific notation toggle
+            scientificToggle.addEventListener('click', toggleScientificNotation);
+            
+            // Prefix buttons
+            prefixButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    applyPrefix(this.dataset.prefix);
+                });
+            });
+        }
+
+        // Check user's dark mode preference
+        function checkDarkModePreference() {
+            if (localStorage.getItem('darkMode') === 'true' || 
+                (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                darkModeToggle.innerHTML = '<i class="fas fa-sun mr-2"></i>Light Mode';
+            }
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('darkMode', isDark);
+            
+            if (isDark) {
+                darkModeToggle.innerHTML = '<i class="fas fa-sun mr-2"></i>Light Mode';
+            } else {
+                darkModeToggle.innerHTML = '<i class="fas fa-moon mr-2"></i>Dark Mode';
+            }
+        }
+
+        // Prepare content for printing
+        function preparePrint() {
+            const fromUnitText = fromUnit.options[fromUnit.selectedIndex].text;
+            const toUnitText = toUnit.options[toUnit.selectedIndex].text;
+            const value = inputValue.value;
+            const result = conversionResult.textContent;
+            
+            printConversion.textContent = `${value} ${fromUnitText} = ${result} ${toUnitText}`;
+            printFormula.textContent = conversionFormula.textContent;
+            printExplanation.innerHTML = `
+                <p class="mb-2"><strong>${unitData[currentCategory].name} Description:</strong> ${unitData[currentCategory].description}</p>
+                <p><strong>Details:</strong> ${unitData[currentCategory].details}</p>
+            `;
+            
+            window.print();
+        }
+
+        // Toggle quiz mode
+        function toggleQuizMode() {
+            isQuizMode = !isQuizMode;
+            
+            if (isQuizMode) {
+                quizModeToggle.innerHTML = '<i class="fas fa-calculator mr-2"></i>Converter Mode';
+                quizPanel.classList.remove('hidden');
+                converterPanel.classList.add('hidden');
+                startNewQuiz();
+            } else {
+                quizModeToggle.innerHTML = '<i class="fas fa-question-circle mr-2"></i>Quiz Mode';
+                quizPanel.classList.add('hidden');
+                converterPanel.classList.remove('hidden');
+            }
+        }
+
+        // Start a new quiz
+        function startNewQuiz() {
+            currentQuizQuestions = [...quizQuestions[currentCategory]];
+            shuffleArray(currentQuizQuestions);
+            currentQuestionIndex = 0;
+            quizScoreCount = 0;
+            quizScore.textContent = '0';
+            quizTotal.textContent = currentQuizQuestions.length;
+            showQuestion();
+        }
+
+        // Shuffle array (for quiz questions)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Show current quiz question
+        function showQuestion() {
+            if (currentQuestionIndex >= currentQuizQuestions.length) {
+                showQuizResults();
+                return;
+            }
+            
+            const question = currentQuizQuestions[currentQuestionIndex];
+            quizQuestion.textContent = question.question;
+            quizOptions.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionBtn = document.createElement('button');
+                optionBtn.className = 'quiz-option p-3 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-left';
+                optionBtn.textContent = option;
+                optionBtn.dataset.index = index;
+                optionBtn.addEventListener('click', () => checkAnswer(index));
+                quizOptions.appendChild(optionBtn);
+            });
+            
+            quizFeedback.classList.add('hidden');
+            nextQuestionBtn.classList.add('hidden');
+            quizProgress.textContent = `Question ${currentQuestionIndex + 1} of ${currentQuizQuestions.length}`;
+        }
+
+        // Check quiz answer
+        function checkAnswer(selectedIndex) {
+            const question = currentQuizQuestions[currentQuestionIndex];
+            const options = quizOptions.querySelectorAll('.quiz-option');
+            
+            // Disable all options
+            options.forEach(option => {
+                option.disabled = true;
+            });
+            
+            // Mark correct and incorrect answers
+            options.forEach((option, index) => {
+                if (index === question.answer) {
+                    option.classList.add('correct');
+                } else if (index === selectedIndex && index !== question.answer) {
+                    option.classList.add('incorrect');
+                }
+            });
+            
+            // Update score if correct
+            if (selectedIndex === question.answer) {
+                quizScoreCount++;
+                quizScore.textContent = quizScoreCount;
+            }
+            
+            // Show feedback
+            quizFeedback.innerHTML = `
+                <p class="font-medium mb-2">${selectedIndex === question.answer ? '<i class="fas fa-check-circle text-green-500 mr-2"></i>Correct!' : '<i class="fas fa-times-circle text-red-500 mr-2"></i>Incorrect!'}</p>
+                <p>${question.explanation}</p>
+            `;
+            quizFeedback.classList.remove('hidden');
+            
+            // Show next question button
+            nextQuestionBtn.classList.remove('hidden');
+        }
+
+        // Show next quiz question
+        function showNextQuestion() {
+            currentQuestionIndex++;
+            showQuestion();
+        }
+
+        // Show quiz results
+        function showQuizResults() {
+            const percentage = Math.round((quizScoreCount / currentQuizQuestions.length) * 100);
+            let message = '';
+            
+            if (percentage >= 80) {
+                message = '<i class="fas fa-star text-yellow-400 mr-2"></i>Excellent work! You really know your unit conversions!';
+            } else if (percentage >= 60) {
+                message = '<i class="fas fa-thumbs-up text-blue-400 mr-2"></i>Good job! With a bit more practice you\'ll master these conversions.';
+            } else {
+                message = '<i class="fas fa-book text-purple-400 mr-2"></i>Keep practicing! Review the conversions and try again.';
+            }
+            
+            quizQuestionContainer.innerHTML = `
+                <h3 class="text-xl font-bold mb-4">Quiz Complete!</h3>
+                <p class="text-lg mb-6">You scored ${quizScoreCount} out of ${currentQuizQuestions.length} (${percentage}%)</p>
+                <p class="text-lg">${message}</p>
+            `;
+            
+            quizOptions.innerHTML = '';
+            quizFeedback.classList.add('hidden');
+            nextQuestionBtn.classList.add('hidden');
+        }
+
+        // Update unit dropdown options
+        function updateUnitOptions() {
+            const units = unitData[currentCategory].units;
+            
+            // Clear existing options
+            fromUnit.innerHTML = '';
+            toUnit.innerHTML = '';
+            
+            // Add new options
+            for (const unitKey in units) {
+                const option1 = document.createElement('option');
+                option1.value = unitKey;
+                option1.textContent = units[unitKey].name;
+                fromUnit.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = unitKey;
+                option2.textContent = units[unitKey].name;
+                toUnit.appendChild(option2);
+            }
+            
+            // Set default "to" unit to something different than "from"
+            if (fromUnit.options.length > 1) {
+                toUnit.selectedIndex = 1;
+            }
+        }
+
+        // Perform unit conversion
+        function performConversion() {
+            const fromUnitKey = fromUnit.value;
+            const toUnitKey = toUnit.value;
+            const value = parseFloat(inputValue.value) || 0;
+            
+            const fromFactor = unitData[currentCategory].units[fromUnitKey].factor;
+            const toFactor = unitData[currentCategory].units[toUnitKey].factor;
+            
+            const result = (value * fromFactor) / toFactor;
+            
+            // Format the result
+            let formattedResult;
+            if (isScientificNotation && (Math.abs(result) >= 1e4 || Math.abs(result) <= 1e-4)) {
+                formattedResult = result.toExponential(4);
+            } else {
+                formattedResult = result.toFixed(6).replace(/\.?0+$/, '');
+                if (formattedResult.indexOf('.') === -1) {
+                    formattedResult += '.0';
+                }
+            }
+            
+            conversionResult.textContent = formattedResult;
+            
+            // Show the conversion formula
+            const fromUnitName = fromUnit.options[fromUnit.selectedIndex].text;
+            const toUnitName = toUnit.options[toUnit.selectedIndex].text;
+            
+            if (fromFactor === toFactor) {
+                conversionFormula.textContent = `${value} ${fromUnitName} = ${value} ${toUnitName} (same unit type)`;
+            } else {
+                const conversionFactor = (fromFactor / toFactor).toFixed(6).replace(/\.?0+$/, '');
+                conversionFormula.textContent = `${value} ${fromUnitName} × ${conversionFactor} = ${formattedResult} ${toUnitName}`;
+            }
+            
+            // Update formula explanation
+            formulaDescription.textContent = unitData[currentCategory].description;
+            formulaDetails.innerHTML = `
+                <p class="font-medium mb-2">${unitData[currentCategory].name} Details:</p>
+                <p>${unitData[currentCategory].details}</p>
+                <p class="mt-2 font-medium">Base SI Unit: ${unitData[currentCategory].units[fromUnitKey].base}</p>
+            `;
+            
+            // Update print content
+            printConversion.textContent = `${value} ${fromUnitName} = ${formattedResult} ${toUnitName}`;
+            printFormula.textContent = conversionFormula.textContent;
+            printExplanation.innerHTML = `
+                <p class="mb-2"><strong>${unitData[currentCategory].name} Description:</strong> ${unitData[currentCategory].description}</p>
+                <p><strong>Details:</strong> ${unitData[currentCategory].details}</p>
+            `;
+        }
+
+        // Update unit information panel
+        function updateUnitInfo() {
+            const units = unitData[currentCategory].units;
+            unitDefinitions.innerHTML = `
+                <h3 class="font-bold text-lg mb-2">${unitData[currentCategory].name} Units</h3>
+                <p class="mb-4">${unitData[currentCategory].description}</p>
+            `;
+            
+            for (const unitKey in units) {
+                const unitDiv = document.createElement('div');
+                unitDiv.className = 'bg-gray-100 dark:bg-gray-700 p-3 rounded-lg';
+                unitDiv.innerHTML = `
+                    <h4 class="font-semibold text-primary-light dark:text-primary-dark">${units[unitKey].name}</h4>
+                    <p class="text-sm">${units[unitKey].base}</p>
+                `;
+                unitDefinitions.appendChild(unitDiv);
+            }
+        }
+
+        // Copy conversion result to clipboard
+        function copyConversionResult() {
+            const resultText = `${inputValue.value} ${fromUnit.options[fromUnit.selectedIndex].text} = ${conversionResult.textContent} ${toUnit.options[toUnit.selectedIndex].text}`;
+            
+            navigator.clipboard.writeText(resultText).then(() => {
+                const originalText = copyResult.innerHTML;
+                copyResult.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+                
+                setTimeout(() => {
+                    copyResult.innerHTML = originalText;
+                }, 2000);
+            });
+        }
+
+        // Toggle formula explanation
+        function toggleFormulaExplanation() {
+            formulaBox.classList.toggle('expanded');
+            const icon = document.getElementById('formulaToggleIcon');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        // Toggle scientific notation
+        function toggleScientificNotation() {
+            isScientificNotation = !isScientificNotation;
+            scientificToggle.innerHTML = isScientificNotation ? '<i class="fas fa-times-10 text-primary-light dark:text-primary-dark"></i>' : '<i class="fas fa-times-10"></i>';
+            performConversion();
+        }
+
+        // Apply unit prefix
+        function applyPrefix(prefix) {
+            const currentValue = parseFloat(inputValue.value) || 0;
+            const multiplier = prefixes[prefix] || 1;
+            inputValue.value = (currentValue * multiplier).toString();
+            performConversion();
+        }
+
+        // Initialize the app
+        init();
+    </script>
+</body>
+</html>
